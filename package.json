@@ -53,13 +53,18 @@
   "sideEffects": false,
   "dependencies": {
     "d3-array": "2.5.0 - 3",
+    "d3-fetch": "^3.0.1",
     "d3-geo": "2 - 3",
-    "d3-geo-projection": "4"
+    "d3-geo-projection": "4",
+    "d3-scale": "^4.0.2",
+    "d3-selection": "^3.0.0"
   },
   "devDependencies": {
     "@rollup/plugin-terser": "0.4",
     "canvas": "2",
     "eslint": "8",
+    "jsdom": "^24.1.0",
+    "jsdom-global": "^3.0.2",
     "mocha": "10",
     "pixelmatch": "5",
     "pngjs": "6",
@@ -68,6 +73,7 @@
     "world-atlas": "1"
   },
   "scripts": {
+    "test-astro": "mocha -r jsdom-global/register 'test/**/astromaps-test.js' && eslint src test",
     "test": "mocha 'test/**/*-test.js' && eslint src test",
     "prepublishOnly": "rm -rf dist && rollup -c"
   },

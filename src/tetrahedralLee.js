@@ -1,5 +1,6 @@
 import {
   geoProjection as projection,
+  geoGnomonic as gnomonic,
   geoStereographicRaw,
   geoCentroid,
   geoContains,
@@ -104,19 +105,24 @@ const tetrahedron = [
   [0, 1, 3],
 ].map((face) => face.map((i) => centers[i]));
 
-export default function (faceProjection = (face) => {
+export default function (parents = [-1, 0, 0, 0], faceProjection = (face) => {
   const c = geoCentroid({ type: "MultiPoint", coordinates: face });
   const rotate = (abs(c[1]) == 90) ? [0, -c[1], -30] : [-c[0], -c[1], 30];
   return projection(leeRaw).scale(1).translate([0, 0]).rotate(rotate);
 }) {
-  const faces = tetrahedron.map((face) => ({ face, project: faceProjection(face) }));
+  let faces = [];
+  
+  function build_tree() {
+    faces = tetrahedron.map((face) => ({ face, project: faceProjection(face) }));
+    // Build a tree of the faces, starting with face 0 (North Pole)
+    // which has no parent (-1)
+    parents.forEach((d, i) => {
+      const node = faces[d];
+      node && (node.children || (node.children = [])).push(faces[i]);
+    });
+  }
 
-  [-1, 0, 0, 0].forEach((d, i) => {
-    const node = faces[d];
-    node && (node.children || (node.children = [])).push(faces[i]);
-  });
-
-  const p = polyhedral(faces[0], (lambda, phi) => {
+  function faceFind(lambda, phi) {
     lambda *= degrees;
     phi *= degrees;
     for (let i = 0; i < faces.length; ++i) {
@@ -132,12 +138,38 @@ export default function (faceProjection = (face) => {
         return faces[i];
       }
     }
-  });
+  }
 
-  return p
-      .rotate([30, 180]) // North Pole aspect, needs clipPolygon
-      // .rotate([-30, 0]) // South Pole aspect
-      .angle(30)
-      .scale(118.662)
-      .translate([480, 195.47]);
+  let p = gnomonic();
+
+  function reset() {
+
+    if (faces.length) {
+      p = polyhedral(faces.find((face, i) => face && !faces[parents[i]]), faceFind);
+    }
+
+    p.parents = function(_) {
+      if (!arguments.length) return parents;
+      parents = _;
+      build_tree();
+      return reset();
+    };
+
+    p.faceProjection = function(_) {
+      if (!arguments.length) return faceProjection;
+      faceProjection = _;
+      build_tree();
+      return reset();
+    };
+
+    return p
+    .rotate([30, 180]) // North Pole aspect, needs clipPolygon
+    // .rotate([-30, 0]) // South Pole aspect
+    .angle(30)
+    .scale(118.662)
+    .translate([480, 195.47]);
+  }
+
+  build_tree();
+  return reset();
 }
