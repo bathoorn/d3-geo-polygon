@@ -340,3 +340,46 @@ export async function clipPointFalse() {
     [10, -20],
   ]});
 }
+
+export async function tetra1() {
+  return renderWorld(
+    geoTetrahedralLee()
+      .parents([-1, 3, 1, 2])
+      .rotate([115, -54.735610317245346, 90])
+      .precision(0.1)
+      .fitSize([width, height], { type: "Sphere" })
+  );
+}
+
+export async function tetra2() {
+  return renderWorld(
+    geoTetrahedralLee()
+      .parents([2, -1, 3, 0])
+      .angle(90)
+      .rotate([115, -54.735610317245346, 90])
+      .precision(0.1)
+      .fitSize([width, height], { type: "Sphere" })
+  );
+}
+
+export async function tetra3() {
+  return renderWorld(
+    geoTetrahedralLee()
+      .parents([3, 0, -1, 1])
+      .angle(-30)
+      .rotate([115, -54.735610317245346, 90])
+      .precision(0.1)
+      .fitSize([width, height], { type: "Sphere" })
+  );
+}
+
+export async function tetra4() {
+  return renderWorld(
+    geoTetrahedralLee()
+      .parents([1, 2, 0, -1])
+      .angle(210)
+      .rotate([115, -54.735610317245346, 90])
+      .precision(0.1)
+      .fitSize([width, height], { type: "Sphere" })
+  );
+}
