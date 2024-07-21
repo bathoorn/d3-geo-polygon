@@ -15,6 +15,7 @@ export {default as geoImago, imagoBlock as geoImagoBlock, imagoRaw as geoImagoRa
 export {default as geoCubic} from "./cubic.js";
 export {default as geoRhombic} from "./rhombic.js";
 export {default as geoDeltoidal} from "./deltoidal.js";
+export {default as geoDesic} from "./geodesic.js";
 export {default as geoCahillKeyes, cahillKeyesRaw as geoCahillKeyesRaw} from "./cahillKeyes.js";
 export {default as geoComplexLog, complexLogRaw as geoComplexLogRaw} from "./complexLog.js";
 export {

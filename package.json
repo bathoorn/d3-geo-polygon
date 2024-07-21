@@ -73,7 +73,7 @@
     "world-atlas": "1"
   },
   "scripts": {
-    "test-astro": "mocha -r jsdom-global/register 'test/**/astromaps-test.js' && eslint src test",
+    "test-astro": "mocha -r jsdom-global/register 'test/**/astromaps-svg.js' && eslint src test",
     "test": "mocha 'test/**/*-test.js' && eslint src test",
     "prepublishOnly": "rm -rf dist && rollup -c"
   },

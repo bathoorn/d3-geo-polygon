@@ -12,6 +12,7 @@ import {
   geoComplexLog,
   geoCubic,
   geoDeltoidal,
+  geoDesic,
   geoGingery,
   geoHealpix,
   geoInterrupt,
@@ -123,6 +124,10 @@ export async function polyhedralWaterman() {
 
 export async function deltoidal() {
   return renderWorld(geoDeltoidal().precision(0.1));
+}
+
+export async function geodesic() {
+  return renderWorld(geoDesic().precision(0.1));
 }
 
 export async function rhombic() {

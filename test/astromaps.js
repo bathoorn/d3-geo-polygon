@@ -7,7 +7,10 @@ import {
   geoRhombic,
   geoIcosahedral,
   geoDeltoidal,
-  geoTetrahedralLee
+  geoTetrahedralLee,
+  geoCubic,
+  geoDodecahedral,
+  geoDesic
 } from "../src/index.js";
 
 const width = 960;
@@ -18,8 +21,7 @@ function recurse(state, face) {
   var site = geoCentroid({type:"MultiPoint", coordinates:face.face});
   site.id = face.id || state.i++;
   state.sites.push(site);
-  var line = face.face
-  line.push(line[0])
+  var line = [...face.face, face.face[0]]
   state.cuts.push({
           type:"LineString",
           coordinates: line.map(
@@ -86,7 +88,7 @@ function getMwbackground(d) {
   return res;
 }
 
-function map(data, projection,show_sphere,show_stars,show_structure, show_labels) {
+function map(data, projection, config) {
   const context = create("svg")
       .attr("viewBox", [0, 0, width, width/2]);
 
@@ -111,9 +113,13 @@ function map(data, projection,show_sphere,show_stars,show_structure, show_labels
   var cons_names = constellations.append("g").attr("class", "cons_names").attr("id", "cons_names");
   var stars = constellations.append("g").attr("class", "stars").attr("id", "stars");
   var milkyway = map.append("g").attr("class", "milkyway").attr("id", "milkyway");
+  var mw = data.milkyway.mwbg;
+  if (config.inverse_milkyway) {
+    mw = data.milkyway.mw;
+  }
   
   
-  if (show_sphere)
+  if (config.show_sphere)
     grid.append("path").datum(geoGraticule()())
       .attr("d", path)
       .attr("fill", "none")
@@ -121,7 +127,7 @@ function map(data, projection,show_sphere,show_stars,show_structure, show_labels
       .attr("opacity", .3)
       .attr("stroke-width", 1);
   
-  if (show_stars) {
+  if (config.show_stars) {
     cons_bounds.append("path")
        .datum(data.constellations.bounds)
           .attr("d", path)
@@ -158,7 +164,7 @@ function map(data, projection,show_sphere,show_stars,show_structure, show_labels
           .attr("fill", "black")
           .attr("opacity", 1);
     milkyway.append("path")
-      .datum(data.milkyway.mwbg)
+      .datum(mw)
           .attr("d", path)
           .attr("fill", "blue")
           .attr("stroke", "blue")
@@ -166,7 +172,7 @@ function map(data, projection,show_sphere,show_stars,show_structure, show_labels
   }
   // Polyhedral projections expose their structure as projection.tree()
   // To draw them we need to cancel the rotate
-  if (show_structure) {
+  if (config.show_structure) {
     var rotate = projection.rotate();
     projection.rotate([0,0,0]);
 
@@ -181,7 +187,7 @@ function map(data, projection,show_sphere,show_stars,show_structure, show_labels
     recurse(state, projection.tree());
 
     // sites & numbers
-    if (show_labels) {
+    if (config.show_labels) {
       facecircles
       .selectAll("circle")
         .data(state.sites)
@@ -198,7 +204,7 @@ function map(data, projection,show_sphere,show_stars,show_structure, show_labels
         .data(state.sites)
         .join("text")
           .datum(d => d)
-          .text(c => c.id + 1)
+          .text(c => c.id)
           .attr("dy", ".4em")
           .attr("text-anchor", "middle")
           .attr("fill", "black")
@@ -236,9 +242,16 @@ function map(data, projection,show_sphere,show_stars,show_structure, show_labels
   return context.node().outerHTML;
 }
 
-async function renderStars(projection) {
+async function renderStars(projection, inverse_milkyway = false) {
   var data = await getMapData();
-  var svg_data = map(data, projection, 1, 1, 1, 1);
+  var config = {
+    show_sphere: true, 
+    show_stars: true, 
+    show_structure: true, 
+    show_labels: true,
+    inverse_milkyway: inverse_milkyway
+  };
+  var svg_data = map(data, projection, config);
   return svg_data;
 }
 
@@ -246,24 +259,36 @@ async function renderStars(projection) {
 export async function rhombic() {
   return renderStars(
     geoRhombic()
-      .rotate([0, -11, 11])
+      .rotate([0, -95, 115])
       .precision(0.1)
-      .fitSize([width, height], { type: "Sphere" })
+      .fitSize([width, height], { type: "Sphere" }),
+      false
   );
 }
 
 export async function icosahedral() {
   return renderStars(
     geoIcosahedral()
+      .rotate([-76.5, 27, -84])
       .precision(0.1)
-      .fitSize([width, height], { type: "Sphere" })
+      .fitSize([width, height], { type: "Sphere" }),
+      false
   );
 }
 
 export async function deltoidal() {
   return renderStars(
     geoDeltoidal()
-      .rotate([-73.5, 18, -85])
+      .rotate([-70.5, 18, -85])
+      .precision(0.1)
+      .fitSize([width, height], { type: "Sphere" })
+  );
+}
+
+export async function geodesic() {
+  return renderStars(
+    geoDesic()
+      .rotate([-70.5, 18, -85])
       .precision(0.1)
       .fitSize([width, height], { type: "Sphere" })
   );
@@ -272,7 +297,7 @@ export async function deltoidal() {
 export async function tetrahedralLee() {
   return renderStars(
     geoTetrahedralLee()
-      .parents([-1, 0, 0, 0])
+      .parents([-1, 0, 1, 2])
       .rotate([115, -54.735610317245346, 90])
       .precision(0.1)
       .fitSize([width, height], { type: "Sphere" })
@@ -320,4 +345,26 @@ export async function tetra4() {
       .precision(0.1)
       .fitSize([width, height], { type: "Sphere" })
   );
+}
+
+export async function cubic() {
+  return renderStars(
+    geoCubic()
+      .parents([-1, 0, 1, 5, 0, 1])
+      .angle(45)
+      .rotate([76.5, -27, 84])
+      .precision(0.1)
+      .fitSize([width, height], { type: "Sphere" }),
+      false
+  );
+}
+
+export async function dodecahedral() {
+  return renderStars(
+    geoDodecahedral()
+    .rotate([-73.5, 18, -85])
+    .precision(0.1)
+    .fitSize([width, height], { type: "Sphere" }),
+    false
+    );
 }
