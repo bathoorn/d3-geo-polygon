@@ -1,4 +1,4 @@
-import { geoInterpolate, geoGraticule, geoCentroid, geoPath } from "d3-geo";
+import { geoInterpolate, geoGraticule, geoCircle, geoCentroid, geoPath } from "d3-geo";
 import { scaleLinear } from "d3-scale";
 import { extent } from "d3-array";
 import { json} from "d3-fetch";
@@ -10,7 +10,7 @@ import {
   geoTetrahedralLee,
   geoCubic,
   geoDodecahedral,
-  geoDesic
+  geoDesicPolyhedral
 } from "../src/index.js";
 
 const width = 960;
@@ -48,12 +48,13 @@ function recurse(state, face) {
 }
 
 async function getMapData() {
-  const [m, s, l, b, n] = await Promise.all([
+  const [m, s, l, b, n, L] = await Promise.all([
     await json("https://ofrohn.github.io/data/mw.json"),
     await json("https://ofrohn.github.io/data/stars.6.json"),
     await json("https://ofrohn.github.io/data/constellations.lines.json"),
     await json("https://ofrohn.github.io/data/constellations.bounds.json"),
-    await json("https://ofrohn.github.io/data/constellations.json")
+    await json("https://ofrohn.github.io/data/constellations.json"),
+    await json("https://unpkg.com/visionscarto-world-atlas@0.0.4/world/110m_land.geojson")
   ]);
   return {
     constellations: {
@@ -68,7 +69,8 @@ async function getMapData() {
     milkyway: {
       mw: m,
       mwbg: getMwbackground(m)
-    }
+    },
+    land: L
   }
 }
 
@@ -107,6 +109,10 @@ function map(data, projection, config) {
   var holes = c.append("g").attr("class", "holes").attr("id", "holes");
   var edges = c.append("g").attr("class", "edges").attr("id", "edges");
   var grid = map.append("g").attr("class", "grid").attr("id", "grid");
+  var eq = map.append("g").attr("class", "eq").attr("id", "eq");
+  var cnc = map.append("g").attr("class", "cnc").attr("id", "cnc");
+  var cap = map.append("g").attr("class", "cap").attr("id", "cap");
+  var countries = map.append("g").attr("class", "countries").attr("id", "countries");    
   var constellations = map.append("g").attr("class", "constellations").attr("id", "constellations");
   var cons_bounds = constellations.append("g").attr("class", "cons_bounds").attr("id", "cons_bounds");
   var cons_lines = constellations.append("g").attr("class", "cons_lines").attr("id", "cons_lines");
@@ -126,7 +132,13 @@ function map(data, projection, config) {
       .attr("stroke", "black")
       .attr("opacity", .3)
       .attr("stroke-width", 1);
-  
+  if (config.show_land) {
+    countries.append("path")
+        .datum(data.land)
+          .attr("d", path)
+          .attr("fill", "black")
+          .attr("opacity", 0.4);
+  }
   if (config.show_stars) {
     cons_bounds.append("path")
        .datum(data.constellations.bounds)
@@ -170,6 +182,30 @@ function map(data, projection, config) {
           .attr("stroke", "blue")
           .attr("opacity", .2);
   }
+
+  if (config.show_equator)
+    eq.append("path").datum(geoGraticule().step([0,100]).extent([[-179.99, -25], [179.99, 25]])())
+      .attr("d", path)
+      .attr("fill", "none")
+      .attr("stroke", "blue")
+      .attr("opacity", .3)
+      .attr("stroke-width", 1.5)
+      .attr("stroke-dasharray", [2, 2]);
+    cnc.append("path").datum(geoCircle().center([0, 90]).radius(90 - 23.43656)())
+      .attr("d", path)
+      .attr("fill", "none")
+      .attr("stroke", "blue")
+      .attr("opacity", .3)
+      .attr("stroke-width", 1.5)
+      .attr("stroke-dasharray", [2, 2]);
+    cap.append("path").datum(geoCircle().center([0, 90]).radius(90 + 23.43656)())
+      .attr("d", path)
+      .attr("fill", "none")
+      .attr("stroke", "blue")
+      .attr("opacity", .3)
+      .attr("stroke-width", 1.5)
+      .attr("stroke-dasharray", [2, 2]); 
+
   // Polyhedral projections expose their structure as projection.tree()
   // To draw them we need to cancel the rotate
   if (config.show_structure) {
@@ -249,12 +285,28 @@ async function renderStars(projection, inverse_milkyway = false) {
     show_stars: true, 
     show_structure: true, 
     show_labels: true,
+    show_equator: true,
+    show_land: false,
     inverse_milkyway: inverse_milkyway
   };
   var svg_data = map(data, projection, config);
   return svg_data;
 }
 
+async function renderMap(projection, inverse_milkyway = false) {
+  var data = await getMapData();
+  var config = {
+    show_sphere: true, 
+    show_stars: false, 
+    show_structure: true, 
+    show_labels: true,
+    show_equator: true,
+    show_land: true,
+    inverse_milkyway: inverse_milkyway
+  };
+  var svg_data = map(data, projection, config);
+  return svg_data;
+}
 
 export async function rhombic() {
   return renderStars(
@@ -286,9 +338,11 @@ export async function deltoidal() {
 }
 
 export async function geodesic() {
-  return renderStars(
-    geoDesic()
-      .rotate([-70.5, 18, -85])
+  const lat = 52.377956;
+  const lon = 4.89707;
+  return renderMap(
+    geoDesicPolyhedral(false)
+      .rotate([-lon, 90-lat, 0]).angle(5)
       .precision(0.1)
       .fitSize([width, height], { type: "Sphere" })
   );
